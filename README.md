@@ -17,12 +17,13 @@ Attack classification models with transferability, black-box attack; unrestricte
   - ```data.py```: 加载原始图像，保存图像，图像标准化处理
   - ```model.py```: 模型集成，利用集成模型计算logits
   - ```utils.py```: Input Diversity, 高斯平滑处理
+ 
 * ./input_dir/
   - ./images/:原始图像所在路径
   - ./dev.csv：图像的标记文件（images name, true label）
 
 
-## 3. Demo
+* demo
 ```
 python main.py --source_model 'resnet50'
 ```
@@ -70,3 +71,6 @@ MI-FGSM利用动量迭代，稳定了噪声的更新方向，提高了迁移性�
 
 基于以上的思考，我们设计了一种**Noise Grad Average**方法来更新噪声，该方法利用噪声梯度均值，抵消了无用噪声，留下的都是攻击性强的像素点位置的有用噪声，提高了对抗样本的迁移性。最终的结果表明Noise Grad Average方法得到的噪声相对于MI-FGSM算法更小，迁移性也更好。
 
+## 4. 生成的对抗样本
+
+![image](https://github.com/yufengzhe1/Attack_classification_models_with_transferability/blob/main/input_dir/adv_images.jpg)
