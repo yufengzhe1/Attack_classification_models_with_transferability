@@ -16,7 +16,7 @@ Attack classification models with transferability, black-box attack; unrestricte
   - ```main.py```: 攻击原始图像，生成并保存攻击后的图像
   - ```data.py```: 加载原始图像，保存图像，图像标准化处理
   - ```model.py```: 模型集成，利用集成模型计算logits
-  - ```utils.py```: Input Diversity, 高斯平滑处理
+  - ```utils.py```: Input Diversity, 高斯平滑处理等
  
 * ./input_dir/
   - ./images/:原始图像所在路径
@@ -93,3 +93,5 @@ Input Diversity 会对图像进行随机变换，导致生成的噪声梯度带�
 
 * 感谢团队每一个小伙伴的辛勤付出，感谢指导老师的大力支持。
 * 感谢阿里主办了这次比赛，给了大家交流学习的机会，认识了很多优秀的小伙伴。
+
+**如有问题，欢迎交流：wangguoqiu@buaa.edu.cn**
