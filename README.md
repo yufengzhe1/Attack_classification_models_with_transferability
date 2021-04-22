@@ -57,69 +57,39 @@ python main.py --source_model 'resnet50'
 
 #### 3.2.3 提升对抗样本迁移性方法
 
-**1. MI-FGSM<sup>1</sup>**：公式（1）和公式（2）给出了 MI-FGSM 算法生成噪声的更新公式，其中，$\mu$是权重因子，$g_{t}$是之前累积的梯度，$x_{t}^{*}$是第$t$步时的对抗样本，$y$是图像对应的真实$label$，$L$是损失函数，$\alpha $是攻击时的步长。
-$$
-g_{t+1} = \mu \cdot g_{t} + \frac{\bigtriangledown _{x}L(x_{t}^{*}, y)}{||\bigtriangledown _{x}L(x_{t}^{*}, y)||_{1}}      \tag{1}
-$$
+**1. MI-FGSM<sup>1</sup>**：在机器打分阶段采用 MI-FGSM 算法生成噪声，但是 MI-FGSM 算法生成的噪声人眼看起来会明显，由于决赛阶段是人工打分，最终舍弃了该方法。
 
-$$
-x_{t+1}^{*} = x_{t}^{*} + \alpha \cdot sign(g_{t+1})  \tag{2}
-$$
+**2. Translation-Invariant（TI）<sup>2</sup>**：用核函数对计算得到的噪声梯度进行平滑处理，提升了噪声的泛化性。
 
-在机器打分阶段采用 MI-FGSM 算法生成噪声，但是 MI-FGSM 算法生成的噪声人眼看起来会明显，由于决赛阶段是人工打分，最终舍弃了该方法。
-
-**2. Translation-Invariant（TI）<sup>2</sup>**：用核函数对计算得到的噪声梯度进行平滑处理，提升了噪声的泛化性。其攻击原理如公式（3），$x_{t}^{adv}$ 是第 $t$ 步时的对抗样本，$y$ 是图像对应的真实 $label$，$L$ 是损失函数，$\alpha$ 是攻击步长，$\tau$ 是高斯核。
-$$
-x_{t+1}^{adv} = x_{t}^{adv} + \alpha \cdot sign(\tau * \bigtriangledown _{x}L(x_{t}^{adv}, y))   \tag{3}
-$$
-随着 $\tau$ 值的增大，对抗样本的泛化性会增强，但是其视觉效果也会变差，因此我们的攻击方法中设定 $\tau$ = 5。
-
-**3. Input Diversity（DI）<sup>3</sup>** ：通过增加输入图像的多样性来提高对抗样本的迁移性，其提分效果明显。公式（4）中 $T(x_{t}^{adv}, p)$ 表示以概率 $p$ 对图像 $x_{t}^{adv}$ 作输入变换。
-$$
-x_{t+1}^{adv} = x_{t}^{adv} + \alpha \cdot sign(\bigtriangledown _{x}L(T(x_{t}^{adv}, p), y))     \tag{4}
-$$
-Input Diversity 本质是通过变换输入图像的多样性让噪声不完全依赖相应的像素点，减少了噪声过拟合效应，提高了泛化性和迁移性。
+**3. Input Diversity（DI）<sup>3</sup>** ：通过增加输入图像的多样性来提高对抗样本的迁移性，其提分效果明显。Input Diversity 本质是通过变换输入图像的多样性让噪声不完全依赖相应的像素点，减少了噪声过拟合效应，提高了泛化性和迁移性。
 
 #### 3.2.4 改进后的DI攻击
 
 Input Diversity 会对图像进行随机变换，导致生成的噪声梯度带有一定的随机性。虽然这种随机性可以使对抗样本的泛化性更强，但是也会引入一定比例的噪声，这种噪声也会抑制对抗样本的泛化性，因此如何消除 DI 随机性带来的噪声影响，同时保证攻击具有较强的泛化性是提升迁移性的有效手段。
 
-基于以上思考，我们改进了 DI 攻击算法，其主要贡献点在于消除了 DI 算法本身带来的噪声影响，更好地保留有效的攻击信息。其具体实现如下，
-$$
-g_{i} = sign(\tau * \bigtriangledown _{x}L(T(x_{t}^{adv}, p), y)), i=1,2...n \tag{5}
-$$
+![image](https://github.com/yufengzhe1/Attack_classification_models_with_transferability/blob/main/input_dir/math.jpg)
 
-$$
-g = \frac{1}{n}\sum_{i=1}^{n}g_{i}        \tag{6}
-$$
+#### 3.2.5 Tricks
 
-$$
-x_{t+1}^{*} = x_{t}^{*} + \alpha \cdot sign(g) \tag{7}
-$$
+* 在初赛和复赛阶段，我们采用 L2 和 Linf（24/255）范数扰动攻击，其中 L2 范数扰动攻击得分更高一些。由于复赛阶段线上模型比较强大，我们将扰动范围加大，Linf 范数扰动增加到了（50/255）。
+* 考虑到决赛阶段人工打分，需要综合考虑攻击性和图像质量，我们最终提交的代码采用 Linf 范数扰动，大小为 32/255，迭代次数40，迭代步长 1/255。
+* 攻击之前，对图像进行了高斯平滑处理，过滤掉部分高频信息，这样可以提升攻击效果。
+* 采用 resnet50、densenet161、inception_v4等模型来进行集成。
 
-公式（5) 对图像 $x_{t}^{adv}$ 计算 $n$ 次噪声梯度，由于图像输入模型之前采用 Input Diversity 进行随机变换处理，同一图像最终得到的噪声梯度是不同的，这些梯度信息既含有可以提升攻击泛化性的信息，同时也含有梯度噪声信息。因此，可以通过对多个噪声梯度求平均噪声梯度，一方面突出有效噪声梯度，另一方面抵消了无用噪声，从而提升了攻击泛化性和迁移性，如公式（6）所示。公式（7）利用抵消梯度噪声的 $g$ 来更新对抗样本。
-
-
-
-
-#### 3.2.3 MI-FGSM<sup>[1]</sup>
-
-利用MI-FGSM算法，提高了对抗样本的迁移性，但是生成的噪声人眼看起来会稍大一些，考虑到人工打分，我们最终并没有采用这种方法，但是本方法给我们后续方法提供了一些思路和启发。
-
-#### 3.2.4 Translation-Invariant（TI）<sup>[2]</sup>
-
-TI方法利用kernel对生成的噪声梯度进行平滑处理，增加了噪声的迁移性,随着kernel尺寸的增大，对抗样本的迁移性会增强；同时生成的对抗样本给人的视觉效果也会变差，综合考虑迁移性和视觉效果，最终确定了一个合适的kernel大小。
-
-#### 3.2.5  Input Diversity<sup>[3]</sup>
-
-Input Diversity通过增加输入图像的多样性来提高对抗样本的迁移性，加入Input Diversity后涨分效果很明显。深入地思考，Input Diversity本质是通过变换输入图像的多样性（图像大小、在图像上添加pad的位置）让噪声不完全依赖相应的像素点，减少了噪声过拟合效应，提高了迁移性，这也为我们进一步思考和实验提供了思路。
-
-#### 3.2.6 Noise Grad Average(Ours)
-
-MI-FGSM利用动量迭代，稳定了噪声的更新方向，提高了迁移性；Input Diversity利用输入多样性来提升迁移性。以上的方法都是利用sign()函数来处理噪声梯度的，导致梯度大的像素点和梯度小的像素点最后得到的噪声大小相同，动量迭代的方法虽然能够得到稳定的更新方向，获得较好的迁移性，但是更多的是关注过去的信息g_t。
-
-基于以上的思考，我们设计了一种**Noise Grad Average**方法来更新噪声，该方法利用噪声梯度均值，抵消了无用噪声，留下的都是攻击性强的像素点位置的有用噪声，提高了对抗样本的迁移性。最终的结果表明Noise Grad Average方法得到的噪声相对于MI-FGSM算法更小，迁移性也更好。
-
-## 4. 生成的对抗样本
+## 4. 攻击结果
 
 ![image](https://github.com/yufengzhe1/Attack_classification_models_with_transferability/blob/main/input_dir/adv_images.jpg)
+
+通过多次实验表明，我们改进的 DI+TI 攻击方法，得到的噪声相对于 MI-FGSM 方法更小，泛化性和迁移性更强，同时人眼视觉效果也比较好。
+
+## 5. 参考文献
+
+1. Dong Y, Liao F, Pang T, et al. Boosting adversarial attacks with momentum. CVPR 2018.
+2. Dong Y, Pang T, Su H, et al. Evading defenses to transferable adversarial examples by translation-invariant attacks. CVPR 2019. 
+3. Xie C, Zhang Z, Zhou Y, et al. Improving transferability of adversarial examples with input diversity. CVPR 2019.
+4. Wierstra D, Schaul T, Glasmachers T, et al. Natural evolution strategies. The Journal of Machine Learning Research, 2014.
+
+## 6.致谢
+
+* 感谢我们团队每一个小伙伴的辛勤付出以及坚持，感谢指导老师对我们的大力支持。
+* 感谢阿里主办了这次比赛，给了大家交流学习的机会，认识了很多优秀的小伙伴。
