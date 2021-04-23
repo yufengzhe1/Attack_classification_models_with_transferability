@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-from utils import input_diversity, get_gaussian_kernel, get_TI_kernel
+from utils import input_diversity, gaussian_kernel, TI_kernel
 from model import load_models, get_logits
 from data import MyDataset, save_imgs, imgnormalize
 
@@ -25,14 +25,13 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Transfer attack')
     parser.add_argument('--source_models', nargs="+", default=['resnet50', 'densenet161'], help='source models')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
-    parser.add_argument('--img_size', type=int, default=500, help='Size of image')
-    parser.add_argument('--max_iterations', type=int, default=40, help='Number of iterations')
-    parser.add_argument('--lr', type=eval, default=1.0/255., help='Step size')
-    parser.add_argument('--linf_epsilon', type=float, default=16, help='The maximum pixel value can be changed')
+    parser.add_argument('--iterations', type=int, default=40, help='Number of iterations')
+    parser.add_argument('--alpha', type=eval, default=1.0/255., help='Step size')
+    parser.add_argument('--epsilon', type=float, default=16, help='The maximum pixel value can be changed')
     parser.add_argument('--input_diversity', type=eval, default="True", help='Whether to use Input Diversity')
     parser.add_argument('--input_path', type=str, default='../input_dir', help='Path of input')
     parser.add_argument('--label_file', type=str, default='dev.csv', help='Label file name')
-    parser.add_argument('--result_path', type=str, default='../output_dir', help='Path of images to be saved')
+    parser.add_argument('--result_path', type=str, default='../output_dir', help='Path of adv images to be saved')
     args = parser.parse_args()
     return args
 
@@ -57,7 +56,7 @@ def run_attack(args):
     torch.backends.cudnn.deterministic = True
 
     # gaussian_kernel: filter high frequency information of images
-    gaussian_smoothing = get_gaussian_kernel(device, kernel_size=5, sigma=1, channels=3)
+    gaussian_smoothing = gaussian_kernel(device, kernel_size=5, sigma=1, channels=3)
 
     print('Start attack......')
     for i, data in enumerate(data_loader, 0):
@@ -70,7 +69,7 @@ def run_attack(args):
         delta = torch.zeros_like(X, requires_grad=True).to(device)
         X = gaussian_smoothing(X)  # filter high frequency information of images
 
-        for t in range(args.max_iterations):
+        for t in range(args.iterations):
             g_temp = []
             for tt in range(len(liner_interval)):
                 if args.input_diversity:  # use Input Diversity
@@ -88,8 +87,8 @@ def run_attack(args):
                 loss.backward()
 
                 grad = delta.grad.clone()
-                # TI: smooth gradient
-                grad = F.conv2d(grad, get_TI_kernel(), bias=None, stride=1, padding=(2,2), groups=3)
+                # TI: smooth the gradient
+                grad = F.conv2d(grad, TI_kernel(), bias=None, stride=1, padding=(2,2), groups=3)
                 g_temp.append(grad)
 
             # calculate the mean and cancel out the noise, retained the effective noise
@@ -99,8 +98,8 @@ def run_attack(args):
             g = g / float(len(liner_interval))
             delta.grad.zero_()
 
-            delta.data = delta.data - args.lr * torch.sign(g)
-            delta.data = delta.data.clamp(-args.linf_epsilon/255., args.linf_epsilon/255.)
+            delta.data = delta.data - args.alpha * torch.sign(g)
+            delta.data = delta.data.clamp(-args.epsilon/255., args.epsilon/255.)
             delta.data = ((X+delta.data).clamp(0.0, 1.0)) - X
 
         save_imgs(X+delta, adv_img_save_folder, filenames)  # save adv images

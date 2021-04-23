@@ -6,7 +6,16 @@ import scipy.stats as st
 import torch.nn.functional as F
 
 
-def get_TI_kernel():
+# kernel of TI
+def get_kernel(kernlen=15, nsig=3):
+    x = np.linspace(-nsig, nsig, kernlen)
+    kern1d = st.norm.pdf(x)
+    kernel_raw = np.outer(kern1d, kern1d)
+    kernel = kernel_raw / kernel_raw.sum()
+    return kernel
+
+
+def TI_kernel():
     kernel_size = 5                                   # kernel size
     kernel = get_kernel(kernel_size, 1).astype(np.float32)
     gaussian_kernel = np.stack([kernel, kernel, kernel])   # 5*5*3
@@ -16,15 +25,14 @@ def get_TI_kernel():
 
 
 # gaussian_kernel for filter high frequency information of images
-def get_gaussian_kernel(device, kernel_size=15, sigma=2, channels=3):
+def gaussian_kernel(device, kernel_size=15, sigma=2, channels=3):
     x_coord = torch.arange(kernel_size)
     x_grid = x_coord.repeat(kernel_size).view(kernel_size, kernel_size)
     y_grid = x_grid.t()
     xy_grid = torch.stack([x_grid, y_grid], dim=-1).float()  # kernel_size*kernel_size*2
     mean = (kernel_size - 1)/2.
     variance = sigma**2.
-    gaussian_kernel = (1./(2.*math.pi*variance)) *\
-                      torch.exp(-torch.sum((xy_grid - mean)**2., dim=-1) / (2*variance))
+    gaussian_kernel = (1./(2.*math.pi*variance)) * torch.exp(-torch.sum((xy_grid - mean)**2., dim=-1) / (2*variance))
     gaussian_kernel = gaussian_kernel / torch.sum(gaussian_kernel)
     gaussian_kernel = gaussian_kernel.view(1, 1, kernel_size, kernel_size)
     gaussian_kernel = gaussian_kernel.repeat(channels, 1, 1, 1)
@@ -33,15 +41,6 @@ def get_gaussian_kernel(device, kernel_size=15, sigma=2, channels=3):
     gaussian_filter.weight.data = gaussian_kernel.to(device)
     gaussian_filter.weight.requires_grad = False
     return gaussian_filter
-
-
-# kernel of TI
-def get_kernel(kernlen=15, nsig=3):
-    x = np.linspace(-nsig, nsig, kernlen)
-    kern1d = st.norm.pdf(x)
-    kernel_raw = np.outer(kern1d, kern1d)
-    kernel = kernel_raw / kernel_raw.sum()
-    return kernel
 
 
 def input_diversity(x, resize_rate=1.15, diversity_prob=0.7):
