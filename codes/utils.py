@@ -7,8 +7,8 @@ import torch.nn.functional as F
 
 
 def get_TI_kernel():
-    kernel_size = 5                                   # kernel大小
-    kernel = gkern(kernel_size, 1).astype(np.float32)      # 3表述kernel内元素值得上下限
+    kernel_size = 5                                   # kernel size
+    kernel = get_kernel(kernel_size, 1).astype(np.float32)
     gaussian_kernel = np.stack([kernel, kernel, kernel])   # 5*5*3
     gaussian_kernel = np.expand_dims(gaussian_kernel, 1)   # 1*5*5*3
     gaussian_kernel = torch.from_numpy(gaussian_kernel).cuda()  # tensor and cuda
@@ -36,7 +36,7 @@ def get_gaussian_kernel(device, kernel_size=15, sigma=2, channels=3):
 
 
 # kernel of TI
-def gkern(kernlen=15, nsig=3):
+def get_kernel(kernlen=15, nsig=3):
     x = np.linspace(-nsig, nsig, kernlen)
     kern1d = st.norm.pdf(x)
     kernel_raw = np.outer(kern1d, kern1d)
@@ -60,4 +60,6 @@ def input_diversity(x, resize_rate=1.15, diversity_prob=0.7):
     padded = F.pad(rescaled, [pad_left.item(), pad_right.item(), pad_top.item(), pad_bottom.item()], value=0)
     ret = padded if torch.rand(1) < diversity_prob else x
     return ret
+
+
 

@@ -45,6 +45,9 @@ class imgnormalize(nn.Module):
         return (x - self.mean.type_as(x)[None, :, None, None]) / self.std.type_as(x)[None, :, None, None]
 
 
+norm = imgnormalize()  # standard imagenet normalize
+
+
 # save adv images to result folder
 def save_imgs(X, adv_img_save_folder, filenames):
     for i in range(X.shape[0]):
