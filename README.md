@@ -2,6 +2,8 @@
 Attack classification models with transferability, black-box attack; unrestricted adversarial attacks on imagenet, [CVPR2021 安全AI挑战者计划第六期：ImageNet无限制对抗攻击](https://tianchi.aliyun.com/competition/entrance/531853/introduction), 决赛第四名(team name: Advers)
 
 [详细方案介绍](https://tianchi.aliyun.com/forum/postDetail?postId=208941)
+
+论文：[Improving Adversarial Transferability with Gradient Refining](https://arxiv.org/abs/2105.04834)
 ## 1. Prerequisites
 ```
 1. python >= 3.6
@@ -90,9 +92,8 @@ Input Diversity 会对图像进行随机变换，导致生成的噪声梯度带�
 3. Xie C, Zhang Z, Zhou Y, et al. Improving transferability of adversarial examples with input diversity. CVPR 2019.
 4. Wierstra D, Schaul T, Glasmachers T, et al. Natural evolution strategies. The Journal of Machine Learning Research, 2014.
 
-## 6.致谢
+## 6. Citation
 
-* 感谢团队每一位小伙伴的辛勤付出，感谢指导老师的大力支持。
-* 感谢阿里安全主办了这次比赛，给了大家交流学习的机会，使得我们结识了很多优秀的小伙伴！
+
 
 **如有问题，欢迎交流：wangguoqiu@buaa.edu.cn**
