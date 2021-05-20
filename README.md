@@ -34,7 +34,7 @@ python main.py --source_model 'resnet50'
 ## 3. 思路
 
 * 本文分享我们团队（Advers）的解决方案，欢迎大家交流讨论，一起进步。
-* 本方案最终得分：**9081.6**， 线上后台模型攻击成功率：**95.48%**，决赛排名：**TOP 4**。
+* 本方案最终综合得分：**9081.6（TOP 4）**， 线上后台模型攻击成功率：**95.48% (TOP 2)**。
 * 本方案初赛排名：**TOP 4**，复赛排名：**TOP 10**。
 
 ### 3.1 赛题分析
@@ -70,7 +70,7 @@ python main.py --source_model 'resnet50'
 
 Input Diversity 会对图像进行随机变换，导致生成的噪声梯度带有一定的随机性。虽然这种随机性可以使对抗样本的泛化性更强，但是也会引入一定比例的噪声，这种噪声也会抑制对抗样本的泛化性，因此如何消除 DI 随机性带来的噪声影响，同时保证攻击具有较强的泛化性是提升迁移性的有效手段。
 
-![image](https://github.com/yufengzhe1/Attack_classification_models_with_transferability/blob/main/input_dir/math.jpg)
+![image](https://github.com/yufengzhe1/Attack_classification_models_with_transferability/blob/main/input_dir/math1.png)
 
 #### 3.2.5 Tricks
 
