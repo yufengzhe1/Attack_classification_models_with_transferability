@@ -13,13 +13,7 @@ from model import load_models, get_logits
 from data import MyDataset, save_imgs, imgnormalize
 
 
-variance = np.random.uniform(0.5, 1.5, 3)
-neg_perturbations = - variance
-liner_interval = np.append(variance, neg_perturbations)
-liner_interval = np.append(liner_interval, [0.])
-liner_interval = np.sort(liner_interval)
-# liner_interval = [-3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0]
-
+n=9
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Transfer attack')
@@ -71,15 +65,14 @@ def run_attack(args):
 
         for t in range(args.iterations):
             g_temp = []
-            for tt in range(len(liner_interval)):
+            for tt in range(n):
                 if args.input_diversity:  # use Input Diversity
                     X_adv = X + delta
                     X_adv = input_diversity(X_adv)
                     # images interpolated to 224*224, adaptive standard networks and reduce computation time
                     X_adv = F.interpolate(X_adv, (224, 224), mode='bilinear', align_corners=False)
                 else:
-                    c = liner_interval[tt]
-                    X_adv = X + c * delta
+                    X_adv = X + delta
                     X_adv = F.interpolate(X_adv, (224, 224), mode='bilinear', align_corners=False)
                 # get ensemble logits
                 ensemble_logits = get_logits(X_adv, source_models)
@@ -93,9 +86,9 @@ def run_attack(args):
 
             # calculate the mean and cancel out the noise, retained the effective noise
             g = 0.0
-            for j in range(len(liner_interval)):
+            for j in range(n):
                 g += g_temp[j]
-            g = g / float(len(liner_interval))
+            g = g / float(n)
             delta.grad.zero_()
 
             delta.data = delta.data - args.alpha * torch.sign(g)
